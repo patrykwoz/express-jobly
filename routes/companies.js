@@ -39,15 +39,37 @@ router.post("/", ensureLoggedIn, async function (req, res, next) {
   }
 });
 
-/** GET /  =>
- *   { companies: [ { handle, name, description, numEmployees, logoUrl }, ...] }
- *
- * Can filter on provided search filters:
- * - minEmployees
- * - maxEmployees
- * - nameLike (will find case-insensitive, partial matches)
- *
- * Authorization required: none
+/**
+ * GET /companies
+ * Retrieves a list of companies filtered by specified criteria.
+ * 
+ * This method allows for filtering based on partial name matches, minimum number of employees,
+ * and maximum number of employees, with all filters being optional. It performs a case-insensitive
+ * search for names. If multiple filters are provided, they are combined with an AND logical operator.
+ * 
+ * Parameters:
+ *   - name: String (optional)
+ *     A substring to search for within the company name. The search is case-insensitive.
+ *   - minEmployees: Integer (optional)
+ *     The minimum number of employees a company must have to be included in the results.
+ *   - maxEmployees: Integer (optional)
+ *     The maximum number of employees a company can have to be included in the results.
+ *     Throws an error if `minEmployees` is greater than `maxEmployees`.
+ * 
+ * Returns:
+ *   - An array of objects where each object represents a company and includes:
+ *     - handle: String - The unique identifier for the company.
+ *     - name: String - The name of the company.
+ *     - description: String - A brief description of the company.
+ *     - numEmployees: Integer - The number of employees at the company.
+ *     - logoUrl: String - The URL to the company's logo.
+ * 
+ * Throws:
+ *   - An error if `minEmployees` is set higher than `maxEmployees`.
+ * 
+ * Example:
+ *   findAll('Tech', 50, 500) // returns companies with 'Tech' in their name, having 50 to 500 employees.
+ *   findAll() // returns all companies.
  */
 
 router.get("/", async function (req, res, next) {
@@ -55,12 +77,13 @@ router.get("/", async function (req, res, next) {
     const { name } = req.query;
     let { minEmployees, maxEmployees } = req.query;
 
-    minEmployees = Number(minEmployees);
-    maxEmployees = Number(maxEmployees);
-    
-    if (minEmployees && maxEmployees && minEmployees > maxEmployees) {
+    minEmployees = minEmployees ? Number(minEmployees) : undefined;
+    maxEmployees = maxEmployees ? Number(maxEmployees) : undefined;
+
+    if (minEmployees !== undefined && maxEmployees !== undefined && minEmployees > maxEmployees) {
       throw new BadRequestError("minEmployees must be less than maxEmployees");
     }
+
     const companies = await Company.findAll(name, minEmployees, maxEmployees);
     return res.json({ companies });
   } catch (err) {
