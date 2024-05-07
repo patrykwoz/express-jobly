@@ -139,7 +139,58 @@ class User {
 
     if (!user) throw new NotFoundError(`No user: ${username}`);
 
+    const  applicationsRes = await db.query(
+      `SELECT a.job_id,
+                  j.title,
+                  j.company_handle AS "companyHandle",
+                  c.name AS "companyName"
+           FROM applications AS a
+             JOIN jobs AS j ON a.job_id = j.id
+             JOIN companies AS c ON j.company_handle = c.handle
+           WHERE a.username = $1`,
+      [username],
+    );
+
+    user.applications = applicationsRes.rows;
+
     return user;
+  }
+
+  /** Apply to a job */
+  static async apply(username, jobId) {
+    const preCheck = await db.query(
+      `SELECT id
+           FROM jobs
+           WHERE id = $1`,
+      [jobId],
+    );
+    if (!preCheck.rows[0]) throw new NotFoundError(`No job: ${jobId}`);
+
+    const preCheck2 = await db.query(
+      `SELECT username
+           FROM users
+           WHERE username = $1`,
+      [username],
+    );
+    if (!preCheck2.rows[0]) throw new NotFoundError(`No user: ${username}`);
+
+    const preCheck3 = await db.query(
+      `SELECT job_id
+           FROM applications
+           WHERE job_id = $1 AND username = $2`,
+      [jobId, username],
+    );
+    if (preCheck3.rows[0]) throw new BadRequestError(`User: ${username} already applied to job: ${jobId}`);
+
+    const result = await db.query(
+      `INSERT INTO applications
+           (job_id, username)
+           VALUES ($1, $2)
+           RETURNING job_id, username`,
+      [jobId, username],
+    );
+
+    return result.rows[0];
   }
 
   /** Update user data with `data`.

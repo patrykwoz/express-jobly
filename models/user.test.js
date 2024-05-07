@@ -13,6 +13,7 @@ const {
   commonAfterEach,
   commonAfterAll,
 } = require("./_testCommon");
+const app = require("../app");
 
 beforeAll(commonBeforeAll);
 beforeEach(commonBeforeEach);
@@ -140,6 +141,7 @@ describe("get", function () {
       lastName: "U1L",
       email: "u1@email.com",
       isAdmin: false,
+      applications: [],
     });
   });
 
